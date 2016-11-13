@@ -1,5 +1,3 @@
-open Env
-
 (* Expressions: all PL/0 expressions have integer values *)
 (***********************************************************
  * eval.ml

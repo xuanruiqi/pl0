@@ -27,9 +27,9 @@ let bind (name, value, env) = (name, value) :: env
 
 let rec bindList (names, values, env) = 
     match (names, values) with
-    | ([], []) -> env
+    | ([], [])            -> env
     | ((_, []) | ([], _)) -> raise Match
-    | (x :: xs, v :: vs) -> bindList (xs, vs, bind (x, v, env))
+    | (x :: xs, v :: vs)  -> bindList (xs, vs, bind (x, v, env))
 
 let rec lookup (name, env) =
     match env with
