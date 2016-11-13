@@ -1,6 +1,24 @@
-type ident = string
+open Env
 
 (* Expressions: all PL/0 expressions have integer values *)
+(***********************************************************
+ * eval.ml
+ * Copyright 2016 by Xuanrui Qi <me@xuanruiqi.com> 
+ * Licensed under Mozilla Public License. 
+ * Available at
+ * 
+ *     https://www.mozilla.org/en-US/MPL/2.0/ 
+ * 
+ * Covered Software is provided under this License 
+ * on an “as is” basis, without warranty of any kind, 
+ * either expressed, implied, or statutory, including, 
+ * without limitation, warranties that the Covered Software 
+ * is free of defects, merchantable, fit for a particular 
+ * purpose or non-infringing. No liability is assumed unless 
+ * required by law or consented by writing. Refer to 
+ * license for details. *)
+open Env
+
 type arithop = Plus | Minus | Mult | Div
 
 type exp = Literal  of int
@@ -15,17 +33,17 @@ type cond = Rel of relop * exp * exp
           | Odd of exp
 
 (* Statements: statments are not side-effect free, as PL/0 is imperative *)
-type statement = Input  of ident
-               | Output of exp
-               | Assign of ident * exp
-               | Block  of statement list
-               | Call   of ident
-               | Ifx    of cond * statement * statement
-               | Whilex of cond * statement
+type statement = Input    of ident
+               | Output   of exp
+               | DefConst of ident * exp
+               | DefVar   of ident
+               | Assign   of ident * exp
+               | Block    of statement list
+               | Call     of ident
+               | Ifx      of cond * statement * statement
+               | Whilex   of cond * statement
 
 exception NotImplemented of string
-
-let lookup _ = raise (NotImplemented "Lookup not implemented")
 
 let rec evalExp (exp, rho, xi) =
 match exp with
@@ -39,11 +57,6 @@ match exp with
   | Mult  -> evalExp (e1, rho, xi) * evalExp (e2, rho, xi)
   | Div   -> evalExp (e1, rho, xi) / evalExp (e2, rho, xi)
 
-let isOdd n = 
-if (n mod 2) = 0
-then true
-else false
-
 let rec evalCond (condition, rho, xi) = 
 match condition with
 | Rel (op, e1, e2) -> (
@@ -54,21 +67,25 @@ match condition with
   | Leq -> evalExp (e1, rho, xi) <= evalExp (e2, rho, xi) 
   | Gt  -> evalExp (e1, rho, xi) >  evalExp (e2, rho, xi)
   | Geq -> evalExp (e1, rho, xi) >= evalExp (e2, rho, xi))
-| Odd e -> isOdd (evalExp (e, rho, xi))
+| Odd e -> let isOdd n = if (n mod 2) = 0 then true else false
+           in isOdd (evalExp (e, rho, xi))
 
 let rec evalStmt (stmt, rho, xi) = 
 match stmt with
-| Input  x         -> raise (NotImplemented "INPUT is not implemented")
-| Output e         -> raise (NotImplemented "OUTPUT is not implemented")
-| Assign (x, e)    -> raise (NotImplemented ":= is not implemented")
-| Block  block     -> (
+| Input  x           -> raise (NotImplemented "INPUT is not implemented")
+| Output e           -> raise (NotImplemented "OUTPUT is not implemented")
+| 
+| Assign (x, e)      -> (rho, bind (x, evalExp (e, rho, xi), xi))
+| Block  block       -> (
   match block with
-  | s :: ss -> evalStmt (Block ss, evalStmt (s, rho, xi), xi)
-  | []      -> rho)     
-| Call   f         -> raise (NotImplemented "CALL is not implemented")
-| Ifx    (c, st, sf) -> if evalCond (c, rho, xi) 
+  | s :: ss -> let (rho', xi') = evalStmt (s, rho, xi)
+               in  evalStmt (Block ss, rho', xi')
+  | []      -> (rho, xi))     
+| Call   f           -> raise (NotImplemented "CALL is not implemented")
+| Ifx    (c, st, sf) -> if   evalCond (c, rho, xi) 
                         then evalStmt (st, rho, xi)
                         else evalStmt (sf, rho, xi)
-| Whilex (c, st)   -> raise (NotImplemented "WHILE is not implemented")
-
-
+| Whilex (c, st)   -> if evalCond (c, rho, xi)
+                      then let (rho', xi') = evalStmt (st, rho, xi)
+                           in  evalStmt (Whilex (c, st), rho', xi')
+                      else (rho, xi)
