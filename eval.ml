@@ -1,4 +1,3 @@
-(* Expressions: all PL/0 expressions have integer values *)
 (***********************************************************
  * eval.ml
  * Copyright 2016 by Xuanrui Qi <me@xuanruiqi.com> 
@@ -17,6 +16,7 @@
  * license for details. *)
 open Env
 
+(* Expressions: all PL/0 expressions have integer values *)
 type arithop = Plus | Minus | Mult | Div
 
 type exp = Literal  of int
