@@ -72,8 +72,9 @@ let rec evalStmt (stmt, rho, xi) =
 match stmt with
 | Input  x           -> raise (NotImplemented "INPUT is not implemented")
 | Output e           -> raise (NotImplemented "OUTPUT is not implemented")
-| 
-| Assign (x, e)      -> (rho, bind (x, evalExp (e, rho, xi), xi))
+| DefConst (x, e)    -> (rho, bind (x, evalExp (e, rho, xi), xi))
+| DefVar x           -> (bind (x, 0, rho), xi)
+| Assign (x, e)      -> (bind (x, evalExp (e, rho, xi), rho), xi)
 | Block  block       -> (
   match block with
   | s :: ss -> let (rho', xi') = evalStmt (s, rho, xi)
@@ -83,7 +84,7 @@ match stmt with
 | Ifx    (c, st, sf) -> if   evalCond (c, rho, xi) 
                         then evalStmt (st, rho, xi)
                         else evalStmt (sf, rho, xi)
-| Whilex (c, st)   -> if evalCond (c, rho, xi)
-                      then let (rho', xi') = evalStmt (st, rho, xi)
-                           in  evalStmt (Whilex (c, st), rho', xi')
-                      else (rho, xi)
+| Whilex (c, st)     -> if evalCond (c, rho, xi)
+                        then let (rho', xi') = evalStmt (st, rho, xi)
+                             in  evalStmt (Whilex (c, st), rho', xi')
+                        else (rho, xi)
